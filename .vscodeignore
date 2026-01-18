@@ -1,10 +1,15 @@
 .vscode/**
 .vscode-test/**
 out/test/**
-src/**
+src/**/*.ts
+!src/webview/html/**
+!src/webview/styles/**
+!src/webview/scripts/**
 .gitignore
+.claude/**
 vsc-extension-quickstart.md
 **/tsconfig.json
 **/.eslintrc.json
 **/*.map
-**/*.ts
+LINUX_SETUP.md
+code.png

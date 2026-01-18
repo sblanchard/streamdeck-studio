@@ -7,6 +7,44 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [5.0.0] - 2026-01-18
+
+### Added
+
+- **Visual Configuration Panel** - New webview-based UI for configuring Stream Deck buttons
+  - Click the status bar item to open the configuration panel
+  - Visual button grid that matches your device layout
+  - Real-time connection status indicator
+  - Device selector for multi-device setups
+- **Button Editor Modal** - Comprehensive button configuration interface
+  - VS Code command autocomplete with search
+  - Terminal command execution
+  - Create new terminals with custom settings
+  - Insert code snippets
+  - Change editor language
+  - Open folders/workspaces
+- **Copy & Paste** - Duplicate button configurations easily
+- **Clear All** - Remove all button configurations with one click
+- **Form Validation** - Required field validation with helpful error messages
+- **JSON Validation** - Validate command arguments in real-time
+- **Live Updates** - Device connection changes reflect immediately in the UI
+- **Brightness Control** - Adjust Stream Deck brightness from the configuration panel
+- **Icon Picker** - Browse and select icon images for buttons
+- **Folder Picker** - Browse for folders when configuring open folder actions
+
+### Changed
+
+- Rebranded as "StreamDeck Studio" by serialcoder
+- Modernized codebase with TypeScript 5.0
+- Updated to @elgato-stream-deck/node v7.3.3 for improved device support
+- Status bar click now opens configuration panel instead of reconnecting
+- Improved event handling with proper cleanup on dispose
+
+### Fixed
+
+- Memory leaks from event subscriptions not being cleaned up
+- Device detection reliability improvements
+
 ## [4.1.5] - 2020-05-28
 
 ### Added

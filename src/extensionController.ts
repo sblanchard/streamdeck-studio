@@ -1,155 +1,220 @@
 import * as vscode from "vscode";
-import { EventList, IEvent } from "strongly-typed-events";
-import { CreateTerminalMessage } from "./messages/createTerminalMessage";
+import { StreamDeckService, ButtonPressEvent, StreamDeckConfiguration, ButtonConfig } from "./streamDeckService";
 import { ExtensionStatus } from "./extensionStatus";
-import { ExecuteTerminalCommandMessage } from "./messages/executeTerminalCommandMessage";
-import { ExecuteCommandMessage } from "./messages/executeCommandMessage";
-import { ActiveSessionChangedMessage } from "./messages/activeSessionChangedMessage";
-import { ExtensionHub } from "./extensionHub";
-import { ExtensionConfiguration } from "./configuration";
-import { ChangeActiveSessionMessage } from "./messages/changeActiveSessionMessage";
-import { Message } from "./messages/message";
-import { ChangeLanguageMessage } from "./messages/changeLanguagMessage";
-import { InsertSnippetMessage } from "./messages/insertSnippetMessage";
+import { StreamDeckPanel } from "./webview/StreamDeckPanel";
 import Logger from "./logger";
-import { OpenFolderMessage } from "./messages/openFolderMessage";
 
 export class ExtensionController {
-  private hub!: ExtensionHub;
+  private streamDeck: StreamDeckService;
   private status: ExtensionStatus;
-  private eventDispatcher: EventList<ExtensionController, any> = new EventList<ExtensionController, any>();
+  private context: vscode.ExtensionContext;
 
-  constructor(statusBar: vscode.StatusBarItem, private sessionId: string, configuration: ExtensionConfiguration) {
+  constructor(
+    statusBar: vscode.StatusBarItem,
+    context: vscode.ExtensionContext
+  ) {
+    this.context = context;
     this.status = new ExtensionStatus(statusBar);
+    this.streamDeck = new StreamDeckService();
 
-    this.createStreamDeckHub(configuration);
+    this.setupEventHandlers();
   }
 
-  activate() {
-    this.connect();
+  private setupEventHandlers(): void {
+    this.streamDeck.onConnected.subscribe(() => this.onConnected());
+    this.streamDeck.onDisconnected.subscribe(() => this.onDisconnected());
+    this.streamDeck.onButtonPressed.subscribe((event) => this.onButtonPressed(event));
+    this.streamDeck.onError.subscribe((error) => this.onError(error));
   }
 
-  public deactivate() {
-    this.onExecuteCommand.clear();
-    this.onActiveSessionChanged.clear();
-    this.onExecuteTerminalCommand.clear();
-    this.onCreateTerminal.clear();
-
-    this.hub.disconnect();
-  }
-
-  private createStreamDeckHub(configuration: ExtensionConfiguration) {
-    this.hub = new ExtensionHub(configuration.host, configuration.port, this.sessionId);
-    this.hub.onConnected.subscribe(() => this.onConnected());
-    this.hub.onDisconnected.subscribe(() => this.onDisconnected());
-    this.hub.onMessageReceived.subscribe((message) => this.onMessageReceived(message));
-  }
-
-  private connect() {
-    Logger.log("Connecting to Stream Deck");
-
+  async activate(): Promise<void> {
+    Logger.log("Activating Stream Deck extension...");
     this.status.setAsConnecting();
 
-    this.hub.connect();
+    // Load configuration
+    this.loadConfiguration();
+
+    // Start device discovery
+    await this.streamDeck.discoverAndConnect();
   }
 
-  public configurationChanged(configuration: ExtensionConfiguration) {
-    Logger.log("Configuration changed, restarting...");
-
-    if (this.hub) {
-      this.hub.disconnect();
-    }
-
-    this.createStreamDeckHub(configuration);
-
-    this.connect();
+  async deactivate(): Promise<void> {
+    Logger.log("Deactivating Stream Deck extension...");
+    await this.streamDeck.disconnect();
   }
 
-  reconnect() {
+  async reconnect(): Promise<void> {
     Logger.log("Reconnecting to Stream Deck...");
-
-    this.connect();
+    this.status.setAsConnecting();
+    await this.streamDeck.disconnect();
+    await this.streamDeck.discoverAndConnect();
   }
 
-  private onConnected() {
-    Logger.log("Connected to Stream Deck.");
+  openConfigurationPanel(): void {
+    Logger.log("Opening Stream Deck configuration panel");
+    const extensionUri = vscode.Uri.file(this.context.extensionPath);
+    StreamDeckPanel.createOrShow(extensionUri, this.streamDeck);
+  }
 
+  loadConfiguration(): void {
+    const config = vscode.workspace.getConfiguration("streamdeck");
+    const buttonsConfig = config.get<{ [key: string]: ButtonConfig }>("buttons") || {};
+    const brightness = config.get<number>("brightness") || 100;
+
+    // Convert string keys to numbers for button configuration
+    const buttons: { [keyIndex: number]: ButtonConfig } = {};
+    for (const [key, value] of Object.entries(buttonsConfig)) {
+      const keyIndex = parseInt(key, 10);
+      if (!isNaN(keyIndex)) {
+        buttons[keyIndex] = value;
+      }
+    }
+
+    const streamDeckConfig: StreamDeckConfiguration = {
+      buttons,
+      brightness,
+    };
+
+    this.streamDeck.setDefaultConfiguration(streamDeckConfig);
+    Logger.log(`Loaded configuration with ${Object.keys(buttons).length} button(s)`);
+  }
+
+  private onConnected(): void {
+    Logger.log("Connected to Stream Deck");
     this.status.setAsConnected();
-  }
+    this.status.setActive();
 
-  private onMessageReceived(message: any) {
-    try {
-      const receivedMessage = <Message>JSON.parse(message);
-
-      Logger.log(`Message received, ${receivedMessage.id}.: ${message}`);
-
-      this.eventDispatcher.get(receivedMessage.id).dispatchAsync(this, JSON.parse(receivedMessage.data));
-    } catch (error) {
-      Logger.error(error);
+    const devices = this.streamDeck.getConnectedDevices();
+    for (const device of devices) {
+      Logger.log(`Device: ${device.model} (${device.serial}) - ${device.keyCount} keys`);
     }
   }
 
-  private onDisconnected() {
-    Logger.log("Disconnected from Stream Deck. Reconnecting in 5 seconds.");
-
+  private onDisconnected(): void {
+    Logger.log("Disconnected from Stream Deck");
     this.status.setAsConnecting();
-
-    setTimeout(() => {
-      this.connect();
-    }, 5000);
-  }
-
-  changeActiveSession(sessionId: string) {
-    const changeActiveSession = new ChangeActiveSessionMessage();
-    changeActiveSession.sessionId = sessionId;
-    this.hub.send(changeActiveSession);
-  }
-
-  setSessionAsActive() {
-    this.status.setActive();
-  }
-
-  setSessionAsInactive() {
     this.status.setInactive();
   }
 
-  get onChangeLanguageCommand() {
-    return <IEvent<ExtensionController, ChangeLanguageMessage>>(
-      this.eventDispatcher.get(ChangeLanguageMessage.name).asEvent()
-    );
+  private onError(error: Error): void {
+    Logger.error(`Stream Deck error: ${error.message}`);
   }
 
-  get onInsertSnippetCommand() {
-    return <IEvent<ExtensionController, InsertSnippetMessage>>(
-      this.eventDispatcher.get(InsertSnippetMessage.name).asEvent()
-    );
+  private async onButtonPressed(event: ButtonPressEvent): Promise<void> {
+    const { serial, keyIndex, config } = event;
+    Logger.log(`Button ${keyIndex} pressed on device ${serial}`);
+
+    try {
+      // Execute VSCode command
+      if (config.command) {
+        await this.executeCommand(config.command, config.arguments);
+      }
+
+      // Execute terminal command
+      if (config.terminalCommand) {
+        await this.executeTerminalCommand(config.terminalCommand);
+      }
+
+      // Create terminal
+      if (config.createTerminal) {
+        await this.createTerminal(config.createTerminal);
+      }
+
+      // Insert snippet
+      if (config.snippet) {
+        await this.insertSnippet(config.snippet);
+      }
+
+      // Change language
+      if (config.languageId) {
+        await this.changeLanguage(config.languageId);
+      }
+
+      // Open folder
+      if (config.openFolder) {
+        await this.openFolder(config.openFolder.path, config.openFolder.newWindow);
+      }
+    } catch (err) {
+      const error = err as Error;
+      Logger.error(`Error handling button press: ${error.message}`);
+    }
   }
 
-  get onOpenFolderCommand() {
-    return <IEvent<ExtensionController, OpenFolderMessage>>this.eventDispatcher.get(OpenFolderMessage.name).asEvent();
+  private async executeCommand(command: string, args?: string): Promise<void> {
+    Logger.log(`Executing command: ${command}`);
+
+    let commandArgs: any;
+    if (args) {
+      try {
+        commandArgs = JSON.parse(args);
+      } catch {
+        // If not valid JSON, use as-is
+        commandArgs = args;
+      }
+    }
+
+    if (commandArgs !== undefined) {
+      await vscode.commands.executeCommand(command, commandArgs);
+    } else {
+      await vscode.commands.executeCommand(command);
+    }
   }
 
-  get onExecuteCommand() {
-    return <IEvent<ExtensionController, ExecuteCommandMessage>>(
-      this.eventDispatcher.get(ExecuteCommandMessage.name).asEvent()
-    );
+  private async executeTerminalCommand(command: string): Promise<void> {
+    const terminal = vscode.window.activeTerminal;
+
+    if (terminal) {
+      terminal.show(true);
+      terminal.sendText(command);
+      Logger.log(`Sent command to terminal: ${command}`);
+    } else {
+      Logger.log("No active terminal - creating one");
+      const newTerminal = vscode.window.createTerminal();
+      newTerminal.show(false);
+      newTerminal.sendText(command);
+    }
   }
 
-  get onCreateTerminal() {
-    return <IEvent<ExtensionController, CreateTerminalMessage>>(
-      this.eventDispatcher.get(CreateTerminalMessage.name).asEvent()
-    );
+  private async createTerminal(options: {
+    name?: string;
+    shellPath?: string;
+    shellArgs?: string;
+    workingDirectory?: string;
+    preserveFocus?: boolean;
+  }): Promise<void> {
+    const terminal = vscode.window.createTerminal({
+      name: options.name,
+      shellPath: options.shellPath,
+      shellArgs: options.shellArgs,
+      cwd: options.workingDirectory,
+    });
+
+    terminal.show(options.preserveFocus ?? false);
+    this.context.subscriptions.push(terminal);
+    Logger.log(`Created terminal: ${options.name || "unnamed"}`);
   }
 
-  get onExecuteTerminalCommand() {
-    return <IEvent<ExtensionController, ExecuteTerminalCommandMessage>>(
-      this.eventDispatcher.get(ExecuteTerminalCommandMessage.name).asEvent()
-    );
+  private async insertSnippet(snippetName: string): Promise<void> {
+    await vscode.commands.executeCommand("editor.action.insertSnippet", {
+      name: snippetName,
+    });
+    Logger.log(`Inserted snippet: ${snippetName}`);
   }
 
-  get onActiveSessionChanged() {
-    return <IEvent<ExtensionController, ActiveSessionChangedMessage>>(
-      this.eventDispatcher.get(ActiveSessionChangedMessage.name).asEvent()
+  private async changeLanguage(languageId: string): Promise<void> {
+    const editor = vscode.window.activeTextEditor;
+    if (editor) {
+      await vscode.languages.setTextDocumentLanguage(editor.document, languageId);
+      Logger.log(`Changed language to: ${languageId}`);
+    }
+  }
+
+  private async openFolder(folderPath: string, newWindow?: boolean): Promise<void> {
+    await vscode.commands.executeCommand(
+      "vscode.openFolder",
+      vscode.Uri.file(folderPath),
+      newWindow ?? false
     );
+    Logger.log(`Opened folder: ${folderPath}`);
   }
 }

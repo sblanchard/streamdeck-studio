@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src ${cspSource} 'unsafe-inline'; script-src 'nonce-${nonce}'; img-src ${cspSource} data: https:;">
+    <link href="${styleUri}" rel="stylesheet">
+    <title>Stream Deck Configuration</title>
+</head>
+<body>
+    <div id="app">
+        <header class="header">
+            <div class="header-left">
+                <h1>Stream Deck Configuration</h1>
+                <div id="connection-status" class="connection-status disconnected">
+                    <span class="status-dot"></span>
+                    <span class="status-text">Disconnected</span>
+                </div>
+            </div>
+            <div class="header-right">
+                <div class="device-selector">
+                    <label for="device-select">Device:</label>
+                    <select id="device-select">
+                        <option value="">No device connected</option>
+                    </select>
+                </div>
+                <button id="reconnect-btn" class="btn-secondary btn-small">Reconnect</button>
+                <button id="clear-all-btn" class="btn-danger btn-small">Clear All</button>
+            </div>
+        </header>
+
+        <main class="main-content">
+            <div id="button-grid" class="button-grid">
+                <!-- Buttons will be rendered here -->
+            </div>
+
+            <div class="brightness-control">
+                <label for="brightness-slider">Brightness:</label>
+                <input type="range" id="brightness-slider" min="0" max="100" value="100">
+                <span id="brightness-value">100%</span>
+            </div>
+        </main>
+
+        <!-- Button Edit Modal -->
+        <div id="edit-modal" class="modal hidden">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h2 id="modal-title">Configure Button</h2>
+                    <button id="modal-close" class="close-btn">&times;</button>
+                </div>
+                <form id="button-form">
+                    <div class="form-group">
+                        <label for="action-type">Action Type</label>
+                        <select id="action-type" required>
+                            <option value="command">VS Code Command</option>
+                            <option value="terminal">Terminal Command</option>
+                            <option value="createTerminal">Create Terminal</option>
+                            <option value="snippet">Insert Snippet</option>
+                            <option value="language">Set Language</option>
+                            <option value="openFolder">Open Folder</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="button-label">Label</label>
+                        <input type="text" id="button-label" placeholder="Button label">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="button-icon">Icon</label>
+                        <div class="icon-picker">
+                            <input type="text" id="button-icon" placeholder="Icon path">
+                            <button type="button" id="browse-icon">Browse</button>
+                        </div>
+                        <div id="icon-preview" class="icon-preview hidden"></div>
+                    </div>
+
+                    <!-- Command fields -->
+                    <div id="command-fields" class="action-fields">
+                        <div class="form-group">
+                            <label for="command-input">Command <span class="required">*</span></label>
+                            <input type="text" id="command-input" placeholder="Type to search commands..." autocomplete="off">
+                            <div id="command-suggestions" class="suggestions hidden"></div>
+                            <div id="command-error" class="field-error hidden">Please enter a command</div>
+                        </div>
+                        <div class="form-group">
+                            <label for="command-args">Arguments (JSON)</label>
+                            <textarea id="command-args" placeholder='{"key": "value"}'></textarea>
+                            <div id="args-error" class="field-error hidden">Invalid JSON format</div>
+                        </div>
+                    </div>
+
+                    <!-- Terminal command fields -->
+                    <div id="terminal-fields" class="action-fields hidden">
+                        <div class="form-group">
+                            <label for="terminal-command">Command <span class="required">*</span></label>
+                            <input type="text" id="terminal-command" placeholder="npm run build">
+                            <div id="terminal-error" class="field-error hidden">Please enter a command</div>
+                        </div>
+                    </div>
+
+                    <!-- Create terminal fields -->
+                    <div id="create-terminal-fields" class="action-fields hidden">
+                        <div class="form-group">
+                            <label for="terminal-name">Terminal Name</label>
+                            <input type="text" id="terminal-name" placeholder="My Terminal">
+                        </div>
+                        <div class="form-group">
+                            <label for="shell-path">Shell Path</label>
+                            <input type="text" id="shell-path" placeholder="/bin/bash">
+                        </div>
+                        <div class="form-group">
+                            <label for="shell-args">Shell Arguments</label>
+                            <input type="text" id="shell-args" placeholder="--login">
+                        </div>
+                        <div class="form-group">
+                            <label for="working-dir">Working Directory</label>
+                            <div class="folder-picker">
+                                <input type="text" id="working-dir" placeholder="/path/to/dir">
+                                <button type="button" id="browse-working-dir">Browse</button>
+                            </div>
+                        </div>
+                        <div class="form-group checkbox">
+                            <input type="checkbox" id="preserve-focus">
+                            <label for="preserve-focus">Preserve Focus</label>
+                        </div>
+                    </div>
+
+                    <!-- Snippet fields -->
+                    <div id="snippet-fields" class="action-fields hidden">
+                        <div class="form-group">
+                            <label for="snippet-name">Snippet Name <span class="required">*</span></label>
+                            <input type="text" id="snippet-name" placeholder="my-snippet">
+                            <div id="snippet-error" class="field-error hidden">Please enter a snippet name</div>
+                        </div>
+                    </div>
+
+                    <!-- Language fields -->
+                    <div id="language-fields" class="action-fields hidden">
+                        <div class="form-group">
+                            <label for="language-select">Language <span class="required">*</span></label>
+                            <select id="language-select">
+                                <option value="">Select language...</option>
+                            </select>
+                            <div id="language-error" class="field-error hidden">Please select a language</div>
+                        </div>
+                    </div>
+
+                    <!-- Open folder fields -->
+                    <div id="folder-fields" class="action-fields hidden">
+                        <div class="form-group">
+                            <label for="folder-path">Folder Path <span class="required">*</span></label>
+                            <div class="folder-picker">
+                                <input type="text" id="folder-path" placeholder="/path/to/folder">
+                                <button type="button" id="browse-folder">Browse</button>
+                            </div>
+                            <div id="folder-error" class="field-error hidden">Please enter a folder path</div>
+                        </div>
+                        <div class="form-group checkbox">
+                            <input type="checkbox" id="new-window">
+                            <label for="new-window">Open in New Window</label>
+                        </div>
+                    </div>
+
+                    <div class="form-actions">
+                        <button type="button" id="copy-button" class="btn-secondary" title="Copy to another button">Copy</button>
+                        <button type="button" id="remove-button" class="btn-danger">Remove</button>
+                        <div class="spacer"></div>
+                        <button type="button" id="cancel-button" class="btn-secondary">Cancel</button>
+                        <button type="submit" class="btn-primary">Save</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Copy Target Modal -->
+        <div id="copy-modal" class="modal hidden">
+            <div class="modal-content modal-small">
+                <div class="modal-header">
+                    <h2>Copy to Button</h2>
+                    <button id="copy-modal-close" class="close-btn">&times;</button>
+                </div>
+                <div class="copy-modal-body">
+                    <p>Select the target button to copy this configuration to:</p>
+                    <div id="copy-target-grid" class="copy-target-grid">
+                        <!-- Copy target buttons will be rendered here -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script nonce="${nonce}" src="${scriptUri}"></script>
+</body>
+</html>

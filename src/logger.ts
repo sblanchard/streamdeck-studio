@@ -13,7 +13,11 @@ export default class Logger {
     this.outputChannel.appendLine(`[${new Date().toLocaleString()}] ${message}`);
   }
 
-  static error(error: Error) {
-    this.outputChannel.appendLine(`[ERROR] ${error.message}, Stack: ${error.stack}`);
+  static error(error: Error | string) {
+    if (typeof error === "string") {
+      this.outputChannel.appendLine(`[ERROR] ${error}`);
+    } else {
+      this.outputChannel.appendLine(`[ERROR] ${error.message}, Stack: ${error.stack}`);
+    }
   }
 }

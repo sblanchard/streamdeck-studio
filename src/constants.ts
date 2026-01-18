@@ -5,6 +5,7 @@ export const ExtensionScheme = "streamdeck";
 export enum Commands {
   Reconnect = "reconnectToServer",
   ActivateSession = "activateSession",
+  OpenConfiguration = "openConfiguration",
 }
 
 export enum Configurations {
