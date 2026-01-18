@@ -4,7 +4,9 @@ Control Visual Studio Code with your Elgato Stream Deck. Configure buttons visua
 
 ## Features
 
+- **Default Button Presets** - Ships with 32 pre-configured developer-friendly buttons using VS Code codicons
 - **Visual Configuration Panel** - Click the status bar to open a modern, intuitive UI for configuring your Stream Deck buttons
+- **VS Code Codicons** - Uses official VS Code icons for crisp, beautiful button graphics
 - **Multiple Action Types**:
   - Execute any VS Code command with autocomplete
   - Run terminal commands
@@ -13,14 +15,27 @@ Control Visual Studio Code with your Elgato Stream Deck. Configure buttons visua
   - Change editor language
   - Open folders/workspaces
 - **Device Support** - Works with all Stream Deck models:
-  - Stream Deck Mini (6 keys)
-  - Stream Deck Original/MK.2 (15 keys)
-  - Stream Deck XL (32 keys)
+  - Stream Deck Mini (6 keys) - Uses first 6 default buttons
+  - Stream Deck Original/MK.2 (15 keys) - Uses 15 default buttons
+  - Stream Deck XL (32 keys, 4x8) - Full 32-button layout
   - Stream Deck + (8 keys)
   - Stream Deck Neo (8 keys)
 - **Live Updates** - Device connection status and configuration changes reflect immediately
 - **Brightness Control** - Adjust your Stream Deck brightness from within VS Code
 - **Copy & Clear** - Easily duplicate button configurations or clear all at once
+
+## Default Button Layout (Stream Deck XL - 4x8)
+
+The extension comes with pre-configured buttons organized by function:
+
+| Row | Buttons | Category |
+|-----|---------|----------|
+| **Row 0** | Save, Open, Search, Format, Terminal, Run, Stop, Commands | Core Actions |
+| **Row 1** | Commit, Push, Pull, Sync, Branch, Checkout, Stash, SCM | Git Operations |
+| **Row 2** | Comment, Sidebar, Panel, Symbol, Go Def, Rename, Fix, Close | Editor Actions |
+| **Row 3** | Back, Forward, Split, Zen, Settings, History, Task, Config | Nav & Tools |
+
+Smaller devices use a subset of these buttons (first 6 for Mini, first 15 for Standard).
 
 ## Installation
 
@@ -60,14 +75,19 @@ On Linux, you need to set up udev rules for the Stream Deck:
 ```bash
 # Create udev rules file
 sudo tee /etc/udev/rules.d/50-streamdeck.rules << EOF
-SUBSYSTEM=="usb", ATTRS{idVendor}=="0fd9", MODE="0666"
+SUBSYSTEM=="usb", ATTRS{idVendor}=="0fd9", MODE="0666", GROUP="plugdev"
+KERNEL=="hidraw*", ATTRS{idVendor}=="0fd9", MODE="0666", GROUP="plugdev"
 EOF
 
 # Reload udev rules
 sudo udevadm control --reload-rules
 sudo udevadm trigger
 
+# Add user to plugdev group (if not already)
+sudo usermod -a -G plugdev $USER
+
 # Unplug and replug your Stream Deck
+# Log out and log back in for group changes to take effect
 ```
 
 ### macOS Setup
@@ -81,16 +101,17 @@ No additional setup required. Ensure you have the Elgato Stream Deck software in
 ## Usage
 
 1. **Connect your Stream Deck** - The extension will automatically detect it
-2. **Click the status bar item** - Look for "Stream Deck" in the bottom status bar
-3. **Configure buttons** - Click any button in the grid to configure it
-4. **Choose an action type**:
+2. **See default buttons** - Your deck will immediately show pre-configured buttons
+3. **Click the status bar item** - Look for "Stream Deck" in the bottom status bar
+4. **Customize buttons** - Click any button in the grid to configure it
+5. **Choose an action type**:
    - **VS Code Command**: Search and select from all available commands
    - **Terminal Command**: Run a command in the active terminal
    - **Create Terminal**: Open a new terminal with specific settings
    - **Insert Snippet**: Insert a named snippet at cursor
    - **Set Language**: Change the current file's language
    - **Open Folder**: Open a folder or workspace
-5. **Save** - Your configuration is saved automatically to VS Code settings
+6. **Save** - Your configuration is saved automatically to VS Code settings
 
 ## Configuration
 
@@ -98,7 +119,8 @@ Button configurations are stored in VS Code settings and can be edited directly:
 
 ```json
 {
-  "streamdeck.brightness": 100,
+  "streamdeck.brightness": 80,
+  "streamdeck.useDefaultButtons": true,
   "streamdeck.buttons": {
     "0": {
       "command": "workbench.action.toggleSidebarVisibility",
@@ -116,12 +138,22 @@ Button configurations are stored in VS Code settings and can be edited directly:
 }
 ```
 
+### Settings
+
+| Setting | Type | Default | Description |
+|---------|------|---------|-------------|
+| `streamdeck.brightness` | number | 80 | Display brightness (0-100) |
+| `streamdeck.useDefaultButtons` | boolean | true | Use default button presets. Your buttons override defaults. |
+| `streamdeck.buttons` | object | {} | Custom button configurations |
+
 ### Button Configuration Options
 
 | Property | Type | Description |
 |----------|------|-------------|
 | `label` | string | Text displayed on the button |
 | `icon` | string | Path to an image file for the button |
+| `iconShape` | string | Built-in icon shape (save, search, play, terminal, git, etc.) |
+| `iconStyle` | string | Color scheme (file, run, git, nav, editor, ui, stop, warning, tool) |
 | `command` | string | VS Code command ID to execute |
 | `arguments` | string | JSON string of arguments to pass to the command |
 | `terminalCommand` | string | Command to run in active terminal |
@@ -164,6 +196,17 @@ sudo udevadm trigger
 
 Then unplug and replug your Stream Deck.
 
+### Crash after switching VS Code installation
+
+If you switch between snap and deb VS Code installations, native modules need to be rebuilt:
+
+```bash
+cd ~/.vscode/extensions/serialcoder.streamdeck-studio-*
+npm rebuild
+```
+
+Or reinstall the extension.
+
 ## Contributing
 
 Contributions are welcome! Please feel free to submit a Pull Request.
@@ -182,6 +225,8 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 - Originally inspired by [vscode-streamdeck](https://github.com/nicollasricas/vscode-streamdeck) by Nicollas R.
 - Uses [@elgato-stream-deck/node](https://github.com/Julusian/node-elgato-stream-deck) for device communication
+- Uses [@vscode/codicons](https://github.com/microsoft/vscode-codicons) for official VS Code icons
+- Uses [@resvg/resvg-js](https://github.com/nickvision/resvg-js) for SVG rendering
 
 ## Changelog
 

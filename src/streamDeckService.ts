@@ -10,12 +10,15 @@ import * as fs from "fs";
 import * as path from "path";
 import * as os from "os";
 import Logger from "./logger";
+import { generateButtonIcon, IconStyles, IconShape } from "./iconGenerator";
 
 export interface ButtonConfig {
   command?: string;
   arguments?: string;
   label?: string;
   icon?: string;
+  iconShape?: IconShape;
+  iconStyle?: keyof typeof IconStyles;
   terminalCommand?: string;
   createTerminal?: {
     name?: string;
@@ -331,14 +334,17 @@ export class StreamDeckService {
     // Clear all keys first
     await device.clearPanel();
 
-    // Render buttons with labels
+    // Render buttons with icons/labels
     for (const [keyIndexStr, buttonConfig] of Object.entries(config.buttons)) {
       const keyIndex = parseInt(keyIndexStr, 10);
       if (isNaN(keyIndex)) {
         continue;
       }
 
-      if (buttonConfig.label) {
+      // Use icon generator if iconShape and iconStyle are specified
+      if (buttonConfig.iconShape && buttonConfig.iconStyle) {
+        await this.renderButtonWithIcon(serial, keyIndex, buttonConfig);
+      } else if (buttonConfig.label) {
         await this.renderButtonLabel(serial, keyIndex, buttonConfig.label);
       } else if (buttonConfig.icon) {
         await this.renderButtonIcon(serial, keyIndex, buttonConfig.icon);
@@ -420,6 +426,50 @@ export class StreamDeckService {
     } catch (err) {
       const error = err instanceof Error ? err : new Error(String(err));
       Logger.error(`Error rendering button icon: ${error.message}`);
+    }
+  }
+
+  /**
+   * Render a button with a generated icon using iconShape and iconStyle
+   */
+  async renderButtonWithIcon(serial: string, keyIndex: number, config: ButtonConfig): Promise<void> {
+    const device = this.devices.get(serial);
+    const info = this.deviceInfo.get(serial);
+    if (!device || !info) {
+      return;
+    }
+
+    try {
+      const buttons = device.CONTROLS.filter(
+        (c): c is StreamDeckButtonControlDefinition => c.type === "button"
+      );
+      const button = buttons.find((b) => b.index === keyIndex);
+
+      if (button && button.feedbackType === "lcd") {
+        // Get the style from IconStyles
+        const styleName = config.iconStyle || "ui";
+        const style = IconStyles[styleName] || IconStyles.ui;
+
+        // Generate the button image
+        const buffer = generateButtonIcon(
+          info.keyWidth,
+          info.keyHeight,
+          config.label || "",
+          style,
+          config.iconShape
+        );
+
+        await device.fillKeyBuffer(keyIndex, buffer, { format: "rgba" });
+        Logger.log(`Rendered button ${keyIndex} with icon ${config.iconShape} and style ${styleName}`);
+      } else {
+        // RGB-only device - extract color from style
+        const styleName = config.iconStyle || "ui";
+        const style = IconStyles[styleName] || IconStyles.ui;
+        await device.fillKeyColor(keyIndex, style.bgColor[0], style.bgColor[1], style.bgColor[2]);
+      }
+    } catch (err) {
+      const error = err instanceof Error ? err : new Error(String(err));
+      Logger.error(`Error rendering button with icon: ${error.message}`);
     }
   }
 

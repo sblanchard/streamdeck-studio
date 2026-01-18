@@ -3,6 +3,7 @@ import { StreamDeckService, ButtonPressEvent, StreamDeckConfiguration, ButtonCon
 import { ExtensionStatus } from "./extensionStatus";
 import { StreamDeckPanel } from "./webview/StreamDeckPanel";
 import Logger from "./logger";
+import { getDefaultButtons, DEFAULT_BRIGHTNESS, DefaultButtonConfig } from "./defaultButtons";
 
 export class ExtensionController {
   private streamDeck: StreamDeckService;
@@ -59,24 +60,42 @@ export class ExtensionController {
   loadConfiguration(): void {
     const config = vscode.workspace.getConfiguration("streamdeck");
     const buttonsConfig = config.get<{ [key: string]: ButtonConfig }>("buttons") || {};
-    const brightness = config.get<number>("brightness") || 100;
+    const brightness = config.get<number>("brightness");
+    const useDefaults = config.get<boolean>("useDefaultButtons") !== false; // Default to true
 
-    // Convert string keys to numbers for button configuration
-    const buttons: { [keyIndex: number]: ButtonConfig } = {};
+    // Convert string keys to numbers for user button configuration
+    const userButtons: { [keyIndex: number]: ButtonConfig } = {};
     for (const [key, value] of Object.entries(buttonsConfig)) {
       const keyIndex = parseInt(key, 10);
       if (!isNaN(keyIndex)) {
-        buttons[keyIndex] = value;
+        userButtons[keyIndex] = value;
       }
     }
 
+    // Get default buttons based on typical device size (will be adjusted per device)
+    // Use 32 as default to support XL, smaller decks will just ignore higher indices
+    const defaultButtons = useDefaults ? getDefaultButtons(32) : {};
+
+    // Merge: user config overrides defaults
+    const buttons: { [keyIndex: number]: ButtonConfig } = {
+      ...defaultButtons,
+      ...userButtons,
+    };
+
     const streamDeckConfig: StreamDeckConfiguration = {
       buttons,
-      brightness,
+      brightness: brightness ?? DEFAULT_BRIGHTNESS,
     };
 
     this.streamDeck.setDefaultConfiguration(streamDeckConfig);
-    Logger.log(`Loaded configuration with ${Object.keys(buttons).length} button(s)`);
+
+    const userCount = Object.keys(userButtons).length;
+    const defaultCount = Object.keys(defaultButtons).length;
+    if (userCount > 0) {
+      Logger.log(`Loaded configuration: ${userCount} user button(s), ${defaultCount} default(s)`);
+    } else {
+      Logger.log(`Using ${defaultCount} default button(s)`);
+    }
   }
 
   private onConnected(): void {

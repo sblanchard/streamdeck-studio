@@ -55,4 +55,31 @@ function registerCommands(context: vscode.ExtensionContext) {
       extensionController.openConfigurationPanel();
     })
   );
+
+  // Smart Commit - generates commit message with AI and opens SCM
+  context.subscriptions.push(
+    vscode.commands.registerCommand(`${ExtensionScheme}.${Commands.SmartCommit}`, async () => {
+      Logger.log("Smart Commit triggered");
+
+      // First, focus the SCM view to ensure it's visible
+      await vscode.commands.executeCommand("workbench.view.scm");
+
+      // Wait for SCM to be ready
+      await new Promise(resolve => setTimeout(resolve, 300));
+
+      // Focus the commit input box
+      await vscode.commands.executeCommand("git.commitMessageInputFocus");
+
+      // Wait for focus
+      await new Promise(resolve => setTimeout(resolve, 100));
+
+      // Now generate the commit message with Copilot
+      try {
+        await vscode.commands.executeCommand("github.copilot.git.generateCommitMessage");
+        Logger.log("Copilot commit message generated");
+      } catch (err) {
+        Logger.log("Copilot not available, manual entry required");
+      }
+    })
+  );
 }

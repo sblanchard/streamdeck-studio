@@ -2,7 +2,7 @@
   "name": "streamdeck-studio",
   "displayName": "StreamDeck Studio",
   "description": "Control VS Code with your Elgato Stream Deck. Configure buttons, execute commands, run terminal scripts, and more with a modern visual interface.",
-  "version": "5.0.0",
+  "version": "5.0.3",
   "engines": {
     "vscode": "^1.38.0"
   },
@@ -53,6 +53,11 @@
         "category": "StreamDeck Studio",
         "command": "streamdeck.openConfiguration",
         "title": "Open Configuration Panel"
+      },
+      {
+        "category": "StreamDeck Studio",
+        "command": "streamdeck.smartCommit",
+        "title": "Smart Commit (AI-assisted)"
       }
     ],
     "configuration": [
@@ -61,10 +66,15 @@
         "properties": {
           "streamdeck.brightness": {
             "type": "integer",
-            "default": 100,
+            "default": 80,
             "minimum": 0,
             "maximum": 100,
             "description": "Stream Deck display brightness (0-100)"
+          },
+          "streamdeck.useDefaultButtons": {
+            "type": "boolean",
+            "default": true,
+            "description": "Use default button presets (Save, Search, Terminal, Git, etc). Your custom buttons will override defaults."
           },
           "streamdeck.buttons": {
             "type": "object",
@@ -168,17 +178,19 @@
   },
   "dependencies": {
     "@elgato-stream-deck/node": "^7.3.3",
+    "@resvg/resvg-js": "^2.6.2",
+    "@vscode/codicons": "^0.0.44",
     "strongly-typed-events": "^1.6.11"
   },
   "devDependencies": {
-    "@types/vscode": "^1.38.0",
     "@types/glob": "^7.1.1",
     "@types/mocha": "^7.0.2",
     "@types/node": "^18.0.0",
+    "@types/vscode": "^1.38.0",
+    "@typescript-eslint/eslint-plugin": "^6.0.0",
+    "@typescript-eslint/parser": "^6.0.0",
     "@vscode/vsce": "^2.22.0",
     "eslint": "^8.0.0",
-    "@typescript-eslint/parser": "^6.0.0",
-    "@typescript-eslint/eslint-plugin": "^6.0.0",
     "glob": "^7.1.6",
     "mocha": "^7.1.1",
     "typescript": "^5.0.0",

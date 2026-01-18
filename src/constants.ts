@@ -6,6 +6,7 @@ export enum Commands {
   Reconnect = "reconnectToServer",
   ActivateSession = "activateSession",
   OpenConfiguration = "openConfiguration",
+  SmartCommit = "smartCommit",
 }
 
 export enum Configurations {

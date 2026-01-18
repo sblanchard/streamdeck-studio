@@ -7,6 +7,50 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [5.0.3] - 2026-01-18
+
+### Added
+
+- **Smart Commit Command** - New `streamdeck.smartCommit` command that intelligently selects AI assistant:
+  1. Uses Claude Code if available (primary)
+  2. Falls back to GitHub Copilot if Claude not found
+  3. Falls back to regular git commit if no AI assistant installed
+
+### Changed
+
+- Commit button now uses Smart Commit for AI-assisted commit messages
+
+## [5.0.2] - 2026-01-18
+
+### Changed
+
+- Commit button now uses GitHub Copilot to auto-generate commit messages
+
+## [5.0.1] - 2026-01-18
+
+### Added
+
+- **Default Button Presets** - Ships with 32 pre-configured buttons for Stream Deck XL (4x8 layout)
+  - Row 0: Core Actions (Save, Open, Search, Format, Terminal, Run, Stop, Commands)
+  - Row 1: Git Operations (Commit, Push, Pull, Sync, Branch, Checkout, Stash, SCM)
+  - Row 2: Editor Actions (Comment, Sidebar, Panel, Symbol, Go Def, Rename, Fix, Close)
+  - Row 3: Nav & Tools (Back, Forward, Split, Zen, Settings, History, Task, Config)
+- **VS Code Codicons Integration** - Uses official VS Code icons for button graphics
+- **Icon Generator** - Generates attractive button images with gradient backgrounds
+- **New Settings**:
+  - `streamdeck.useDefaultButtons` - Toggle default button presets (default: true)
+- **Fallback Rendering** - Pixel-art fallback when codicons unavailable
+
+### Changed
+
+- Default brightness changed to 80%
+- User button configurations now override defaults (not replace entirely)
+- Improved Linux udev rules documentation
+
+### Fixed
+
+- Native module crash when switching between snap and deb VS Code installations
+
 ## [5.0.0] - 2026-01-18
 
 ### Added
