@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [5.0.4] - 2026-01-18
+
+### Fixed
+
+- Added bounds checking for button rendering to properly support all Stream Deck models
+- Buttons beyond device capacity are now correctly skipped (Mini=6, Standard=15, XL=32)
+
 ## [5.0.3] - 2026-01-18
 
 ### Added

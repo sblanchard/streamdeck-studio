@@ -2,7 +2,7 @@
   "name": "streamdeck-studio",
   "displayName": "StreamDeck Studio",
   "description": "Control VS Code with your Elgato Stream Deck. Configure buttons, execute commands, run terminal scripts, and more with a modern visual interface.",
-  "version": "5.0.3",
+  "version": "5.0.4",
   "engines": {
     "vscode": "^1.38.0"
   },

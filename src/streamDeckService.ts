@@ -334,11 +334,15 @@ export class StreamDeckService {
     // Clear all keys first
     await device.clearPanel();
 
-    // Render buttons with icons/labels
+    // Get device info to check key count
+    const deviceInfo = this.deviceInfo.get(serial);
+    const maxKeys = deviceInfo?.keyCount ?? 32;
+
+    // Render buttons with icons/labels (only for keys that exist on this device)
     for (const [keyIndexStr, buttonConfig] of Object.entries(config.buttons)) {
       const keyIndex = parseInt(keyIndexStr, 10);
-      if (isNaN(keyIndex)) {
-        continue;
+      if (isNaN(keyIndex) || keyIndex >= maxKeys) {
+        continue; // Skip invalid indices or buttons beyond device capacity
       }
 
       // Use icon generator if iconShape and iconStyle are specified
@@ -353,6 +357,8 @@ export class StreamDeckService {
         await this.setButtonColor(serial, keyIndex, 40, 40, 40);
       }
     }
+
+    Logger.log(`Applied ${Math.min(Object.keys(config.buttons).length, maxKeys)} buttons to ${deviceInfo?.model || 'device'} (${maxKeys} keys)`);
   }
 
   async setButtonColor(
