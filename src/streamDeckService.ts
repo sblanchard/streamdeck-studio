@@ -79,9 +79,11 @@ export class StreamDeckService {
     this.isDiscovering = true;
 
     try {
-      // Platform-specific checks for Linux
+      // Platform-specific checks
       if (process.platform === "linux") {
         this.checkLinuxHidAccess();
+      } else if (process.platform === "win32") {
+        this.checkWindowsHidAccess();
       }
 
       Logger.log("Discovering Stream Deck devices...");
@@ -176,6 +178,8 @@ export class StreamDeckService {
           Logger.error(`Failed to open Stream Deck: ${error.message}`);
           if (process.platform === "linux") {
             this.logLinuxTroubleshooting();
+          } else if (process.platform === "win32") {
+            this.logWindowsTroubleshooting();
           }
         }
       }
@@ -193,6 +197,8 @@ export class StreamDeckService {
       Logger.error(`Error discovering Stream Deck devices: ${error.message}`);
       if (process.platform === "linux") {
         this.logLinuxTroubleshooting();
+      } else if (process.platform === "win32") {
+        this.logWindowsTroubleshooting();
       }
       this.scheduleReconnect();
       return 0;
@@ -254,6 +260,37 @@ export class StreamDeckService {
     Logger.log("4. Unplug and replug the Stream Deck");
     Logger.log("5. Log out and log back in (or restart)");
     Logger.log("==========================================");
+  }
+
+  private checkWindowsHidAccess(): void {
+    Logger.log("Windows detected - checking Stream Deck access requirements");
+    // On Windows, Stream Deck typically works out of the box if:
+    // 1. Elgato Stream Deck software is installed (provides drivers)
+    // 2. Or the device is using the WinUSB driver
+    // We can't easily check driver installation, but we log helpful info
+  }
+
+  private logWindowsTroubleshooting(): void {
+    Logger.log("=== Windows Stream Deck Troubleshooting ===");
+    Logger.log("1. Install Elgato Stream Deck software:");
+    Logger.log("   Download from: https://www.elgato.com/downloads");
+    Logger.log("   This installs the required USB drivers.");
+    Logger.log("");
+    Logger.log("2. If using Stream Deck without Elgato software:");
+    Logger.log("   You may need to install WinUSB driver using Zadig:");
+    Logger.log("   https://zadig.akeo.ie/");
+    Logger.log("");
+    Logger.log("3. Try unplugging and replugging the Stream Deck");
+    Logger.log("");
+    Logger.log("4. Check Device Manager for any driver issues:");
+    Logger.log("   Look under 'Universal Serial Bus devices' or");
+    Logger.log("   'Human Interface Devices' for Stream Deck");
+    Logger.log("");
+    Logger.log("5. Ensure Visual C++ Redistributable 2019+ is installed:");
+    Logger.log("   https://aka.ms/vs/17/release/vc_redist.x64.exe");
+    Logger.log("");
+    Logger.log("6. Try running VS Code as Administrator (for testing)");
+    Logger.log("============================================");
   }
 
   private scheduleReconnect(): void {

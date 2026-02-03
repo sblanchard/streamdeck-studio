@@ -20,4 +20,8 @@ export default class Logger {
       this.outputChannel.appendLine(`[ERROR] ${error.message}, Stack: ${error.stack}`);
     }
   }
+
+  static show() {
+    this.outputChannel.show();
+  }
 }

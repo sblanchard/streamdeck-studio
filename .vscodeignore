@@ -38,3 +38,5 @@ icons/**
 **/node_modules/**/docs/**
 **/node_modules/**/example/**
 **/node_modules/**/examples/**
+nul
+scripts/**

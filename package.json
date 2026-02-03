@@ -2,7 +2,7 @@
   "name": "streamdeck-studio",
   "displayName": "StreamDeck Studio",
   "description": "Control VS Code with your Elgato Stream Deck. Configure buttons, execute commands, run terminal scripts, and more with a modern visual interface.",
-  "version": "5.0.4",
+  "version": "5.0.6",
   "engines": {
     "vscode": "^1.38.0"
   },
@@ -167,20 +167,32 @@
     "theme": "dark"
   },
   "scripts": {
-    "vscode:prepublish": "npm run compile",
+    "vscode:prepublish": "npm run compile && node scripts/install-all-platforms.js",
     "compile": "tsc -p ./",
     "lint": "eslint src --ext ts",
     "watch": "tsc -watch -p ./",
     "pretest": "npm run compile && npm run lint",
     "test": "node ./out/test/runTest.js",
-    "package": "vsce package",
-    "publish": "vsce publish"
+    "install-platforms": "node scripts/install-all-platforms.js",
+    "package": "npm run install-platforms && vsce package",
+    "publish": "npm run install-platforms && vsce publish"
   },
   "dependencies": {
     "@elgato-stream-deck/node": "^7.3.3",
     "@resvg/resvg-js": "^2.6.2",
     "@vscode/codicons": "^0.0.44",
     "strongly-typed-events": "^1.6.11"
+  },
+  "optionalDependencies": {
+    "@resvg/resvg-js-darwin-arm64": "2.6.2",
+    "@resvg/resvg-js-darwin-x64": "2.6.2",
+    "@resvg/resvg-js-linux-arm64-gnu": "2.6.2",
+    "@resvg/resvg-js-linux-arm64-musl": "2.6.2",
+    "@resvg/resvg-js-linux-x64-gnu": "2.6.2",
+    "@resvg/resvg-js-linux-x64-musl": "2.6.2",
+    "@resvg/resvg-js-win32-arm64-msvc": "2.6.2",
+    "@resvg/resvg-js-win32-ia32-msvc": "2.6.2",
+    "@resvg/resvg-js-win32-x64-msvc": "2.6.2"
   },
   "devDependencies": {
     "@types/glob": "^7.1.1",
@@ -193,6 +205,7 @@
     "eslint": "^8.0.0",
     "glob": "^7.1.6",
     "mocha": "^7.1.1",
+    "tar": "^7.5.7",
     "typescript": "^5.0.0",
     "vscode-test": "^1.3.0"
   }
